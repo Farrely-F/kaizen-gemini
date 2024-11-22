@@ -1,81 +1,179 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Octokit } from '@octokit/rest';
-import dotenv from 'dotenv';
+// import { GoogleGenerativeAI } from "@google/generative-ai";
+// import { Octokit } from "@octokit/rest";
+// import dotenv from "dotenv";
+// import fs from "fs/promises";
 
-dotenv.config();
+// dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-async function getChangedFiles() {
-  const eventPath = process.env.GITHUB_EVENT_PATH;
-  const event = JSON.parse(await fs.readFile(eventPath, 'utf8'));
-  
-  const { owner, repo } = context.repo;
-  const pull_number = event.pull_request.number;
-  const base = event.pull_request.base.sha;
-  const head = event.pull_request.head.sha;
+// // Track review status
+// let reviewInProgress = false;
+// let reviewPassed = false;
 
-  const { data: files } = await octokit.repos.compareCommits({
-    owner,
-    repo,
-    base,
-    head,
-  });
+// async function getChangedFiles(context, eventData) {
+//   const { owner, repo } = context.repo;
+//   const pull_number = eventData.pull_request.number;
+//   const base = eventData.pull_request.base.sha;
+//   const head = eventData.pull_request.head.sha;
 
-  return files.files;
-}
+//   const { data: files } = await octokit.repos.compareCommits({
+//     owner,
+//     repo,
+//     base,
+//     head,
+//   });
 
-async function reviewCode(content) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+//   return files.files;
+// }
 
-  const prompt = `Please review this code and provide feedback on:
-1. Potential bugs or issues
-2. Code style and best practices
-3. Performance considerations
-4. Security concerns
-5. Suggestions for improvement
+// async function createCheckRun(context, eventData, status, conclusion, output) {
+//   const { owner, repo } = context.repo;
 
-Code to review:
-${content}`;
+//   return await octokit.checks.create({
+//     owner,
+//     repo,
+//     name: 'Gemini Code Review',
+//     head_sha: eventData.pull_request.head.sha,
+//     status,
+//     conclusion,
+//     output: {
+//       title: 'Code Review Results',
+//       summary: output
+//     }
+//   });
+// }
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
-}
+// async function reviewCode(content, filename) {
+//   const model = genAI.getGenerativeModel({
+//     model: "models/gemini-1.5-pro-002",
+//     temperature: 0.7,
+//   });
 
-async function postReview(review) {
-  const eventPath = process.env.GITHUB_EVENT_PATH;
-  const event = JSON.parse(await fs.readFile(eventPath, 'utf8'));
-  
-  const { owner, repo } = context.repo;
-  const pull_number = event.pull_request.number;
+//   const prompt = `You are a thorough code reviewer. Please review this code and provide detailed feedback on:
+// 1. Critical Issues:
+//    - Potential bugs or logic errors
+//    - Security vulnerabilities
+//    - Performance bottlenecks
+//    - Memory leaks
 
-  await octokit.pulls.createReview({
-    owner,
-    repo,
-    pull_number,
-    body: review,
-    event: 'COMMENT'
-  });
-}
+// 2. Code Quality:
+//    - Code style and consistency
+//    - Best practices adherence
+//    - Design patterns usage
+//    - Code organization
 
-async function main() {
-  try {
-    const changedFiles = await getChangedFiles();
-    
-    for (const file of changedFiles) {
-      if (file.status === 'modified' || file.status === 'added') {
-        const content = file.patch || '';
-        const review = await reviewCode(content);
-        
-        const reviewComment = `## AI Code Review for ${file.filename}\n\n${review}`;
-        await postReview(reviewComment);
-      }
-    }
-  } catch (error) {
-    console.error('Error during code review:', error);
-    process.exit(1);
-  }
-}
+// 3. Specific Recommendations:
+//    - Concrete suggestions for improvement
+//    - Alternative approaches if applicable
+//    - Performance optimization opportunities
 
-main();
+// 4. Overall Assessment:
+//    - A clear PASS/FAIL verdict
+//    - Summary of key findings
+//    - Risk level (High/Medium/Low)
+
+// File being reviewed: ${filename}
+
+// Code to review:
+// ${content}
+
+// Please format your response in markdown and be specific with your feedback.`;
+
+//   const result = await model.generateContent(prompt);
+//   const review = result.response.text();
+
+//   // Determine if review passed based on AI response
+//   const reviewPassed = !review.toLowerCase().includes('fail') &&
+//                       !review.toLowerCase().includes('high risk') &&
+//                       !review.toLowerCase().includes('critical issue');
+
+//   return { review, passed: reviewPassed };
+// }
+
+// async function postReview(context, eventData, review, file) {
+//   const { owner, repo } = context.repo;
+//   const pull_number = eventData.pull_request.number;
+
+//   await octokit.pulls.createReview({
+//     owner,
+//     repo,
+//     pull_number,
+//     body: `## AI Code Review for ${file.filename}\n\n${review}`,
+//     event: 'COMMENT'
+//   });
+// }
+
+// async function main() {
+//   try {
+//     const eventPath = process.env.GITHUB_EVENT_PATH;
+//     const eventData = JSON.parse(await fs.readFile(eventPath, "utf8"));
+//     const context = {
+//       repo: {
+//         owner: eventData.repository.owner.login,
+//         repo: eventData.repository.name
+//       }
+//     };
+
+//     // Create initial check run
+//     await createCheckRun(context, eventData, 'in_progress', null, 'Code review in progress...');
+//     reviewInProgress = true;
+
+//     const changedFiles = await getChangedFiles(context, eventData);
+//     let allFilesPassed = true;
+//     let reviewSummary = '';
+
+//     for (const file of changedFiles) {
+//       if (file.status === "modified" || file.status === "added") {
+//         const content = file.patch || "";
+//         const { review, passed } = await reviewCode(content, file.filename);
+
+//         reviewSummary += `\n\n### ${file.filename}\n${review}`;
+//         allFilesPassed = allFilesPassed && passed;
+
+//         await postReview(context, eventData, review, file);
+//       }
+//     }
+
+//     // Update final check run status
+//     const conclusion = allFilesPassed ? 'success' : 'action_required';
+//     const status = 'completed';
+//     const output = allFilesPassed
+//       ? 'All files passed AI code review! 🎉'
+//       : 'Some files need attention. Please address the issues mentioned in the review comments. ⚠️';
+
+//     await createCheckRun(context, eventData, status, conclusion, reviewSummary);
+
+//     reviewInProgress = false;
+//     reviewPassed = allFilesPassed;
+
+//   } catch (error) {
+//     console.error("Error during code review:", error);
+
+//     // Create failure check run on error
+//     try {
+//       const eventData = JSON.parse(await fs.readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
+//       const context = {
+//         repo: {
+//           owner: eventData.repository.owner.login,
+//           repo: eventData.repository.name
+//         }
+//       };
+
+//       await createCheckRun(
+//         context,
+//         eventData,
+//         'completed',
+//         'failure',
+//         `Error during code review: ${error.message}`
+//       );
+//     } catch (e) {
+//       console.error("Failed to create error check:", e);
+//     }
+
+//     process.exit(1);
+//   }
+// }
+
+// main();
