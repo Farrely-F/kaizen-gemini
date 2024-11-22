@@ -1,7 +1,4 @@
-import {
-  DynamicRetrievalMode,
-  GoogleGenerativeAI,
-} from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "@octokit/rest";
 import { context } from "@actions/github";
 import * as core from "@actions/core";
@@ -23,23 +20,10 @@ async function getChangedFiles() {
 }
 
 async function reviewCode(content, filename) {
-  const model = genAI.getGenerativeModel(
-    {
-      model: "models/gemini-1.5-pro-002",
-      temperature: 0.8,
-      tools: [
-        {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: DynamicRetrievalMode.MODE_DYNAMIC,
-              dynamicThreshold: 0.7,
-            },
-          },
-        },
-      ],
-    },
-    { apiVersion: "v1beta" }
-  );
+  const model = genAI.getGenerativeModel({
+    model: "models/gemini-1.5-pro-002",
+    temperature: 0.8,
+  });
 
   const prompt = `As a friendly and helpful code reviewer named "GeminiAI Review Buddy 🤖", analyze this ${filename} and provide an engaging review. Use emojis and a conversational tone while maintaining professionalism.
 
