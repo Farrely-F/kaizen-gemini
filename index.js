@@ -2,3 +2,5 @@
 
 console.log(`Hello Node.js v${process.versions.node}!`);
 console.log("test pr");
+
+const ANTHROPIC_SECRET = "AdasfdfdfgjPcrBgdadsaBN2312437TOs5BPyEYQtNvVdsd";
