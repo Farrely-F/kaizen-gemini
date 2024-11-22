@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      checks: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,13 +21,16 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: '.github/package.json'
 
       - name: Install dependencies
+        working-directory: .github
         run: npm ci
 
       - name: Run AI Code Review
+        working-directory: .github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_ACTOR: KaizenAI Review Buddy
-        run: node .github/scripts/code-review.js
+        run: npm start
