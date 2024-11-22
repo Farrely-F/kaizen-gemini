@@ -1,4 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  DynamicRetrievalMode,
+  GoogleGenerativeAI,
+} from "@google/generative-ai";
 import { Octokit } from "@octokit/rest";
 import { context } from "@actions/github";
 import * as core from "@actions/core";
