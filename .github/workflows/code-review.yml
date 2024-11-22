@@ -23,11 +23,12 @@ jobs:
           cache: "npm"
           cache-dependency-path: ".github/package-lock.json"
 
-      - name: Install dependencies
+      - name: Clean install dependencies
         working-directory: .github
         run: |
+          rm -f package-lock.json
+          npm install --no-package-lock
           npm install
-          npm ci
 
       - name: Run AI Code Review
         working-directory: .github
